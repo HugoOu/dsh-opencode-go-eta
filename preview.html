@@ -64,7 +64,7 @@
   .demo[data-theme="dark"] .mark { background: linear-gradient(150deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
   .title { font-size: 14.5px; font-weight: 650; letter-spacing: -.015em; }
-  .subtitle { color: var(--ink3); font-size: 11.5px; margin-top: 1px; }
+  .subtitle { color: var(--ink3); font-size: 11px; margin-top: 1px; white-space: nowrap; }
   .actions { display: flex; align-items: center; gap: 5px; }
   .chip { display: inline-flex; align-items: center; height: 25px; padding: 0 10px; border-radius: 999px;
     background: color-mix(in srgb, var(--ink) 6%, transparent); color: var(--ink2); font-size: 11.5px; font-weight: 500; white-space: nowrap; }
@@ -220,7 +220,7 @@ function panel(c) {
       <div class="rings">${rings(c.w)}</div>
       <div class="figs">
         <div class="remaining"><b>${Math.round(100 - c.used)}%</b><span>剩余</span></div>
-        <div class="figrow"><span class="figrow-strong">${c.money}<i> / $60.00</i></span><span>速度 <b>${c.rate}</b></span></div>
+        <div class="figrow"><span class="figrow-strong">${c.money}<i> / ${c.limit}</i></span><span>速度 <b>${c.rate}</b></span></div>
         <div class="figrow"><span>置信度 <b>${c.conf}</b></span><span>46 个采样点</span></div>
       </div>
     </section>
@@ -241,7 +241,7 @@ function panel(c) {
       <div class="advice-head"><span>提前用尽时的成本对比</span><span class="advice-price">官方价 $0.28/$1.10 每 M</span></div>
       <div class="option ${c.advice.pick === 'renew' ? 'is-pick' : ''}">
         <span class="option-name">立即续费 OpenCode Go</span><span class="option-cost">$10.00</span>
-        <span class="option-note">新一期额度 $60，续费日顺延</span>
+        <span class="option-note">新一期额度 ${c.limit}，续费日顺延</span>
       </div>
       <div class="option ${c.advice.pick === 'api' ? 'is-pick' : ''}">
         <span class="option-name">改用官方 API 支付溢出部分</span><span class="option-cost">$14.50</span>
@@ -251,7 +251,7 @@ function panel(c) {
     </section>` : ''}
     <section class="sec">
       <div class="sechead"><span class="sectitle">用量与预测</span><span class="secnote">46 个采样点 · 6.4 天</span></div>
-      <div class="chart">${chart(c)}</div>
+      ${chart(c)}
     </section>
     <footer class="foot"><span>采样 <b>46</b> 个点 · 3/9/15/21 点与任务结束时取数</span><span>上次 <b>11:42</b></span></footer>
   </div>`
@@ -278,6 +278,10 @@ function render() {
   document.getElementById('cards').innerHTML = cards.map(c =>
     `<div><div class="slot-label">${c.label}</div>${panel(c)}</div>`).join('')
 }
+const params = new URLSearchParams(location.search)
+const hash = location.hash.toLowerCase()
+if (params.get('theme') === 'dark' || hash.includes('dark')) document.getElementById('demo').dataset.theme = 'dark'
+if (params.get('shot') === '1' || hash.includes('shot')) { document.querySelector('.head').style.display = 'none'; document.querySelector('.dock-row').style.display = 'none'; document.getElementById('demo').style.paddingTop = '24px' }
 render()
 function toggleTheme() {
   const demo = document.getElementById('demo')
