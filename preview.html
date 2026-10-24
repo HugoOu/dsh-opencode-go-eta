@@ -1,0 +1,289 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenCode Go ETA · 合并图表 + 成本建议</title>
+<style>
+  :root { color-scheme: light; }
+  .demo[data-theme="light"] {
+    --surface: #ffffff; --ink: #1d1d1f; --ink2: #6e6e73; --ink3: #86868b;
+    --line: rgba(0,0,0,.075); --track: rgba(29,29,31,.09);
+    --accent: #6b86e8; --neutral: #8e8e93; --good: #30a46c; --warn: #e5a000; --bad: #e5484d;
+    background: radial-gradient(900px 620px at 10% 0%, #e6ebff 0%, transparent 62%),
+                radial-gradient(820px 600px at 90% 14%, #e7f4ec 0%, transparent 58%), #f5f5f7;
+  }
+  .demo[data-theme="dark"] {
+    --surface: #1c1c1e; --ink: #f5f5f7; --ink2: #aeaeb2; --ink3: #8e8e93;
+    --line: rgba(255,255,255,.10); --track: rgba(255,255,255,.14);
+    --accent: #aab8ff; --neutral: #98989d; --good: #4cc38a; --warn: #f5b944; --bad: #ff6369;
+    background: radial-gradient(900px 620px at 10% 0%, #171d36 0%, transparent 60%),
+                radial-gradient(820px 600px at 90% 14%, #10211a 0%, transparent 56%), #000;
+  }
+  html, body { margin: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI Variable", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  .demo { min-height: 100vh; padding: 34px 22px 48px; box-sizing: border-box; transition: background .25s; }
+  .head { max-width: 1120px; margin: 0 auto 22px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; color: var(--ink); }
+  .head h1 { font-size: 19px; margin: 0; font-weight: 650; letter-spacing: -.02em; }
+  .head p { margin: 0; font-size: 12.5px; color: var(--ink3); }
+  .head .spacer { flex: 1; }
+  .toggle { border: 0; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink);
+    border-radius: 999px; height: 30px; padding: 0 14px; font: inherit; font-size: 12.5px; cursor: pointer; }
+  .grid { max-width: 1120px; margin: 0 auto; display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); align-items: start; }
+  .slot-label { font-size: 11.5px; color: var(--ink3); margin: 0 0 9px 4px; }
+
+  .panel {
+    position: relative; width: 100%; max-width: 392px; box-sizing: border-box; padding: 17px 17px 13px;
+    border-radius: 26px; color: var(--ink); font-size: 13px; line-height: 1.42; font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    background:
+      radial-gradient(95% 62% at 16% -12%, rgba(255,255,255,.46), rgba(255,255,255,0) 62%) padding-box,
+      linear-gradient(112deg, rgba(255,255,255,.08) 28%, rgba(255,255,255,.16) 44%, rgba(255,255,255,.02) 58%) padding-box,
+      linear-gradient(162deg, color-mix(in srgb, var(--surface) 82%, transparent), color-mix(in srgb, var(--surface) 68%, transparent)) padding-box,
+      linear-gradient(146deg, rgba(255,255,255,.85), rgba(255,255,255,.26) 30%, rgba(255,255,255,.05) 57%, rgba(255,255,255,.48)) border-box;
+    border: 1px solid transparent;
+    box-shadow: 0 44px 120px rgba(0,0,0,.26), 0 14px 36px rgba(0,0,0,.10), 0 2px 6px rgba(0,0,0,.04),
+      inset 0 1px 0 rgba(255,255,255,.7), inset 0 -1px 0 rgba(255,255,255,.18);
+    -webkit-backdrop-filter: blur(40px) saturate(1.95) brightness(1.05); backdrop-filter: blur(40px) saturate(1.95) brightness(1.05);
+  }
+  .demo[data-theme="dark"] .panel {
+    background:
+      radial-gradient(95% 62% at 16% -12%, rgba(255,255,255,.07), rgba(255,255,255,0) 62%) padding-box,
+      linear-gradient(112deg, rgba(255,255,255,.02) 28%, rgba(255,255,255,.05) 44%, rgba(255,255,255,0) 58%) padding-box,
+      linear-gradient(162deg, color-mix(in srgb, var(--surface) 94%, transparent), color-mix(in srgb, var(--surface) 88%, transparent)) padding-box,
+      linear-gradient(146deg, rgba(255,255,255,.24), rgba(255,255,255,.09) 32%, rgba(255,255,255,.02) 60%, rgba(255,255,255,.13)) border-box;
+    box-shadow: 0 44px 120px rgba(0,0,0,.6), 0 14px 36px rgba(0,0,0,.4), 0 2px 6px rgba(0,0,0,.3),
+      inset 0 1px 0 rgba(255,255,255,.14), inset 0 -1px 0 rgba(255,255,255,.04);
+    -webkit-backdrop-filter: blur(36px) saturate(1.5) brightness(1); backdrop-filter: blur(36px) saturate(1.5) brightness(1);
+  }
+  .h { display: flex; align-items: flex-start; gap: 10px; }
+  .hmain { display: flex; align-items: center; gap: 11px; flex: 1; }
+  .mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px;
+    background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 14%, transparent), color-mix(in srgb, var(--accent) 6%, transparent));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 16%, transparent); }
+  .demo[data-theme="dark"] .mark { background: linear-gradient(150deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
+  .title { font-size: 14.5px; font-weight: 650; letter-spacing: -.015em; }
+  .subtitle { color: var(--ink3); font-size: 11.5px; margin-top: 1px; }
+  .actions { display: flex; align-items: center; gap: 5px; }
+  .chip { display: inline-flex; align-items: center; height: 25px; padding: 0 10px; border-radius: 999px;
+    background: color-mix(in srgb, var(--ink) 6%, transparent); color: var(--ink2); font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+  .demo[data-theme="dark"] .chip { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); }
+  .iconbtn { width: 27px; height: 27px; display: grid; place-items: center; border: 0; border-radius: 50%;
+    background: transparent; color: var(--ink3); cursor: pointer; }
+  .demo[data-theme="dark"] .iconbtn { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); }
+
+  .hero { display: flex; align-items: center; gap: 16px; margin: 14px 0 2px; }
+  .rings { width: 116px; height: 116px; flex: none; }
+  .figs { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+  .figrow { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; color: var(--ink2); font-size: 11.5px; white-space: nowrap; }
+  .figrow b { color: var(--ink); font-weight: 600; }
+  .figrow-strong { color: var(--ink); font-weight: 600; font-size: 12px; }
+  .figrow-strong i { color: var(--ink3); font-style: normal; font-weight: 500; }
+  .remaining { display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; }
+  .remaining b { font-size: 30px; font-weight: 660; letter-spacing: -.04em; line-height: 1; }
+  .remaining span { color: var(--ink3); font-size: 12px; }
+  .money { display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; color: var(--ink2); font-size: 11.5px; }
+  .money b { color: var(--ink); font-weight: 600; font-size: 12px; }
+  .figline { display: flex; align-items: center; justify-content: flex-end; gap: 6px; color: var(--ink2); font-size: 11.5px; }
+  .figline b { color: var(--ink); font-weight: 600; }
+
+  .quotas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 2px 0; }
+  .quota { display: flex; flex-direction: column; gap: 2px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .quota-top { display: flex; align-items: center; gap: 5px; color: var(--ink2); font-size: 11px; }
+  .quota-top i { width: 7px; height: 7px; border-radius: 50%; }
+  .quota-value { font-size: 15px; font-weight: 620; letter-spacing: -.02em; }
+  .quota-note { color: var(--ink3); font-size: 10px; }
+
+  .verdict { display: flex; gap: 9px; align-items: flex-start; margin: 13px 2px 2px; }
+  .vdot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex: none; }
+  .vmain { font-size: 14px; font-weight: 600; letter-spacing: -.015em; color: var(--ink); }
+  .vsub { margin-top: 2px; color: var(--ink2); font-size: 11.5px; }
+
+  .advice { margin-top: 14px; padding: 10px 11px; border-radius: 14px;
+    background: color-mix(in srgb, var(--ink) 4%, transparent); border: 1px solid var(--line); }
+  .advice-head { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; font-weight: 600; color: var(--ink2); margin-bottom: 4px; }
+  .advice-price { font-weight: 500; font-size: 10px; color: var(--ink3); }
+  .option { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 6px 0; }
+  .option + .option { border-top: 1px solid var(--line); }
+  .option-name { font-size: 12px; color: var(--ink2); }
+  .option.is-pick .option-name { color: var(--ink); font-weight: 600; }
+  .option-cost { font-size: 13px; font-weight: 650; text-align: right; }
+  .option-note { grid-column: 1 / -1; font-size: 10.5px; color: var(--ink3); }
+  .advice-reco { margin-top: 6px; font-size: 11.5px; color: var(--ink); }
+
+  .sec { margin-top: 14px; }
+  .sechead { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 7px; }
+  .sectitle { font-size: 11.5px; font-weight: 600; color: var(--ink2); }
+  .secnote { font-size: 10.5px; color: var(--ink3); }
+  .chart { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 6px; }
+  .yaxis { display: flex; flex-direction: column; justify-content: space-between; padding: 2px 0 12px; font-size: 9px; color: var(--ink3); text-align: right; }
+  .plot { min-width: 0; }
+  .plot svg { width: 100%; height: 96px; display: block; }
+  .chart-labels { display: flex; justify-content: space-between; gap: 6px; font-size: 10px; color: var(--ink3); margin-top: 2px; }
+  /* Composer dock row: the shipped ContextMeter (14px ring, 2px stroke) and our pill. */
+  .dock-row { max-width: 1120px; margin: 28px auto 0; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    color: var(--ink3); font-size: var(--dsh-content-font-size-secondary, 13px); }
+  .dock-row .stats { display: inline-flex; align-items: center; gap: 6px; }
+  .dock-row .trigger { display: inline-flex; align-items: center; gap: 6px; padding: 1px 8px; border: 0; border-radius: 6px;
+    background: transparent; color: var(--ink3); font: inherit; font-size: var(--dsh-content-font-size-secondary, 13px);
+    line-height: 20px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .dock-row .trigger:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); color: var(--ink2); }
+  .dock-row .trigger .value { color: var(--ink); font-weight: 500; }
+  .dock-row .ring { display: block; flex: none; }
+  .foot { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; color: var(--ink3); font-size: 10.5px; }
+  .foot b { font-weight: 600; color: var(--ink2); }
+</style>
+</head>
+<body>
+<div class="demo" data-theme="light" id="demo">
+  <div class="head">
+    <h1>OpenCode Go 额度预测</h1>
+    <p>合并图表 · 对齐的三档行 · 成本建议</p>
+    <span class="spacer"></span>
+    <button class="toggle" onclick="toggleTheme()">切换深色 / 浅色</button>
+  </div>
+  <div class="grid" id="cards"></div>
+  <div class="dock-row">
+    <span class="stats">7 轮 201 步 · 144 tok/s</span>
+    <span class="stats">68.7M tok · 缓存命中 99%</span>
+    <span class="trigger" title="DSH 官方上下文占用">
+      <svg class="ring" viewBox="0 0 14 14" width="14" height="14"><circle cx="7" cy="7" r="5.5" fill="none" stroke="var(--line)" stroke-width="2"/><circle cx="7" cy="7" r="5.5" fill="none" stroke="var(--ink3)" stroke-width="2" stroke-linecap="round" stroke-dasharray="34.56 34.56" stroke-dashoffset="15.9" transform="rotate(-90 7 7)"/></svg>
+      54%
+    </span>
+    <span class="trigger" title="OpenCode Go 月额度（本插件）">
+      <svg class="ring" viewBox="0 0 14 14" width="14" height="14"><circle cx="7" cy="7" r="5.5" fill="none" stroke="var(--line)" stroke-width="2"/><circle cx="7" cy="7" r="5.5" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-dasharray="34.56 34.56" stroke-dashoffset="28.3" transform="rotate(-90 7 7)"/></svg>
+      Go <span class="value">18%</span>
+    </span>
+  </div>
+</div>
+<script>
+function v(name) { return getComputedStyle(document.getElementById('demo')).getPropertyValue(name).trim() }
+
+function rings(w) {
+  const size = 116, cx = 58, specs = [[w[0], 1, 51], [w[1], .6, 40.5], [w[2], .32, 30]]
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">` + specs.map(([pct, opacity, r]) => {
+    const c = 2 * Math.PI * r
+    return `<circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="rgba(120,120,128,.18)" stroke-width="8"/>
+      <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="${v('--accent')}" stroke-opacity="${opacity}" stroke-width="8"
+        stroke-linecap="round" stroke-dasharray="${c} ${c}" stroke-dashoffset="${c * (1 - pct / 100)}" transform="rotate(-90 ${cx} ${cx})"/>`
+  }).join('') + '</svg>'
+}
+
+function chart(c) {
+  const w = 328, h = 96, left = 4, right = 4, top = 6, bottom = 8
+  const start = 0, end = 112
+  const X = t => left + (t / end) * (w - left - right)
+  const Y = p => h - bottom - (p / 100) * (h - top - bottom)
+  const pts = c.points.map(p => [X(p[0]), Y(p[1])])
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2
+    d += ` C${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(1)},${(p1[1] + (p2[1] - p0[1]) / 6).toFixed(1)} ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(1)},${(p2[1] - (p3[1] - p1[1]) / 6).toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`
+  }
+  const area = `${d} L${pts[pts.length - 1][0].toFixed(1)},${h - bottom} L${pts[0][0].toFixed(1)},${h - bottom} Z`
+  const last = pts[pts.length - 1]
+  const nowX = X(c.now), etaX = c.eta ? X(c.eta) : null, renewX = X(100)
+  return `<div class="chart"><div class="yaxis"><span>100%</span><span>50%</span><span>0</span></div><div class="plot"><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${v('--accent')}" stop-opacity=".16"/><stop offset="100%" stop-color="${v('--accent')}" stop-opacity="0"/></linearGradient></defs>
+    <line x1="${left}" y1="${Y(100)}" x2="${w - right}" y2="${Y(100)}" stroke="var(--line)" stroke-dasharray="2 5"/>
+    <line x1="${left}" y1="${Y(50)}" x2="${w - right}" y2="${Y(50)}" stroke="var(--line)" stroke-dasharray="2 7" opacity=".6"/>
+    <path d="${area}" fill="url(#bg)"/>
+    <path d="${d}" fill="none" stroke="${v('--accent')}" stroke-width="2" stroke-linecap="round"/>
+    <path d="M${last[0].toFixed(1)},${last[1].toFixed(1)} L${X(c.target).toFixed(1)},${Y(c.targetY).toFixed(1)}"
+      fill="none" stroke="${c.targetY >= 100 ? v('--warn') : v('--good')}" stroke-width="1.8" stroke-dasharray="3 5" stroke-linecap="round"/>
+    <line x1="${nowX}" y1="${top}" x2="${nowX}" y2="${h - bottom}" stroke="${v('--accent')}" stroke-opacity=".28" stroke-dasharray="2 4"/>
+    ${etaX ? `<line x1="${etaX}" y1="${Y(100)}" x2="${etaX}" y2="${h - bottom}" stroke="${v('--warn')}" stroke-opacity=".4" stroke-dasharray="2 4"/>
+      <circle cx="${etaX}" cy="${Y(100)}" r="3.2" fill="${v('--warn')}"/>` : ''}
+    <line x1="${renewX}" y1="${top}" x2="${renewX}" y2="${h - bottom}" stroke="var(--ink2)" stroke-opacity=".45"/>
+    <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3.2" fill="var(--surface)" stroke="${v('--accent')}" stroke-width="2"/>
+  </svg>
+  <div class="chart-labels"><span>10/01</span><span>现在</span>${c.eta ? `<span>预计用尽 10/28</span>` : ''}<span>续费 ${c.renew}</span></div></div></div>`
+}
+
+const MARK = () => `<svg width="21" height="21" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.2" fill="none" stroke="${v('--accent')}" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="38 14" transform="rotate(-108 12 12)"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="${v('--accent')}" stroke-opacity=".45" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="15 12" transform="rotate(38 12 12)"/></svg>`
+const REFRESH = `<svg width="15" height="15" viewBox="0 0 16 16"><path d="M13.4 8a5.4 5.4 0 1 1-1.58-3.82" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13.6 2.7v3h-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+const CLOSE = `<svg width="15" height="15" viewBox="0 0 16 16"><path d="M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
+
+function panel(c) {
+  return `
+  <div class="panel">
+    <div class="h">
+      <div class="hmain"><div class="mark">${MARK()}</div>
+        <div><div class="title">OpenCode Go</div><div class="subtitle">DeepSeek V4.1 Flash · Go</div></div></div>
+      <div class="actions"><span class="chip">续费 ${c.renew} · ${c.days} 天</span>
+        <button class="iconbtn">${REFRESH}</button><button class="iconbtn">${CLOSE}</button></div>
+    </div>
+    <section class="hero">
+      <div class="rings">${rings(c.w)}</div>
+      <div class="figs">
+        <div class="remaining"><b>${Math.round(100 - c.used)}%</b><span>剩余</span></div>
+        <div class="figrow"><span class="figrow-strong">${c.money}<i> / $60.00</i></span><span>速度 <b>${c.rate}</b></span></div>
+        <div class="figrow"><span>置信度 <b>${c.conf}</b></span><span>46 个采样点</span></div>
+      </div>
+    </section>
+    <div class="quotas">
+      ${[['月', c.w[0], 1], ['周', c.w[1], .6], ['5h', c.w[2], .32]].map(([label, pct, o]) => `
+        <div class="quota">
+          <div class="quota-top"><i style="background:${v('--accent')};opacity:${o}"></i>${label}</div>
+          <div class="quota-value">${pct}%</div>
+          <div class="quota-note">${label === '月' ? '重置 11/03' : label === '周' ? '重置 10/26' : '重置 18:00'}</div>
+        </div>`).join('')}
+    </div>
+    <div class="verdict">
+      <span class="vdot" style="background:${c.tone}"></span>
+      <div><div class="vmain">${c.headline}</div><div class="vsub">${c.sub}</div></div>
+    </div>
+    ${c.advice ? `
+    <section class="advice">
+      <div class="advice-head"><span>提前用尽时的成本对比</span><span class="advice-price">官方价 $0.28/$1.10 每 M</span></div>
+      <div class="option ${c.advice.pick === 'renew' ? 'is-pick' : ''}">
+        <span class="option-name">立即续费 OpenCode Go</span><span class="option-cost">$10.00</span>
+        <span class="option-note">新一期额度 $60，续费日顺延</span>
+      </div>
+      <div class="option ${c.advice.pick === 'api' ? 'is-pick' : ''}">
+        <span class="option-name">改用官方 API 支付溢出部分</span><span class="option-cost">$14.50</span>
+        <span class="option-note">溢出约 20.7% 额度 · 约 16.2M tokens（按 V4.1 Flash Go 单价折算）</span>
+      </div>
+      <div class="advice-reco">建议：溢出金额已达到套餐价，立即续费更省。</div>
+    </section>` : ''}
+    <section class="sec">
+      <div class="sechead"><span class="sectitle">用量与预测</span><span class="secnote">46 个采样点 · 6.4 天</span></div>
+      <div class="chart">${chart(c)}</div>
+    </section>
+    <footer class="foot"><span>采样 <b>46</b> 个点 · 3/9/15/21 点与任务结束时取数</span><span>上次 <b>11:42</b></span></footer>
+  </div>`
+}
+
+const cards = [
+  {
+    label: 'A · 会提前用尽（含成本建议）', used: 82, money: '$65.60', limit: '$80.00', rate: '0.62%/h', conf: '中', tone: () => v('--warn'),
+    headline: '预计 10月28日 09:40 额度用尽', sub: '早于续费日 11/03 约 6.0 天（线性外推）',
+    points: [[0,18],[8,24],[20,31],[32,40],[44,49],[56,58],[68,68],[80,78],[92,88],[104,96],[110,100]],
+    now: 74, eta: 110, target: 110, targetY: 100, renew: '11/03', days: 10,
+    w: [82, 41, 23], advice: { pick: 'renew' },
+  },
+  {
+    label: 'B · 到期前不会用尽', used: 41, money: '$32.80', limit: '$80.00', rate: '0.18%/h', conf: '高', tone: () => v('--good'),
+    headline: '到期前不会用尽', sub: '按当前速度，续费日 11/03 预计使用 62%',
+    points: [[0,8],[12,12],[24,17],[36,22],[48,27],[60,32],[72,36],[84,41]],
+    now: 74, eta: null, target: 100, targetY: 62, renew: '11/03', days: 10,
+    w: [41, 19, 12], advice: null,
+  },
+]
+
+function render() {
+  document.getElementById('cards').innerHTML = cards.map(c =>
+    `<div><div class="slot-label">${c.label}</div>${panel(c)}</div>`).join('')
+}
+render()
+function toggleTheme() {
+  const demo = document.getElementById('demo')
+  demo.dataset.theme = demo.dataset.theme === 'light' ? 'dark' : 'light'
+  render()
+}
+</script>
+</body>
+</html>
