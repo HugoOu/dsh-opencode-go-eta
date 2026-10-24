@@ -1,111 +1,124 @@
-﻿# dsh-opencode-go-eta
+# dsh-opencode-go-eta
 
-OpenCode Go 额度预测插件（DeepSeek Harness / DSH）。
+**A quota forecast widget for OpenCode Go inside DeepSeek Harness — it tells you *when* the monthly allowance runs out, and whether that happens before the renewal date.**
 
-在输入框下方（`conversation.composer.dock`）放一枚小胶囊，点开是一张悬浮仪表卡：本地采样出月额度的消耗速度，推算**预计什么时候用完**，并把它和**套餐续费日**直接对比。
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![DSH](https://img.shields.io/badge/DeepSeek%20Harness-0.2.x-4d6bfe)](https://github.com/deepseek-ai/deepseek-harness)
+[![node](https://img.shields.io/badge/node-%E2%89%A522-3c873a)](package.json)
+[![tests](https://img.shields.io/badge/tests-16%20passing-2ea44f)](test)
 
-## 它回答什么问题
+<p align="center">
+  <img src="docs/preview-light.png" alt="OpenCode Go ETA card, light theme" width="880">
+</p>
 
-- 按最近的速度，本月额度大约在 **什么时候见底**？
-- 这个时间是在**续费日之前**（会被限流）还是**之后**（用不完）？
-- 到续费日预计只用掉多少？
-- 三个窗口（5 小时 / 周 / 月）各自还剩多少、什么时候重置？
+<details>
+<summary>Dark theme</summary>
 
-## 采样节奏（不轮询）
+<p align="center">
+  <img src="docs/preview-dark.png" alt="OpenCode Go ETA card, dark theme" width="880">
+</p>
+</details>
 
-按你的要求，插件不会每 5 分钟去取数：
+## Why
 
-| 时机 | 说明 |
-|---|---|
-| 本地锚点 03:00 / 09:00 / 15:00 / 21:00 | 一天 4 次，DSH 在运行且错过该时点才补采 |
-| 每次任务结束（`turn/end`） | 任务边界是自然的用量拐点 |
-| 插件启动后约 4 秒 | 冷启动先取一次 |
-| 打开面板 / 点刷新 | 距上次采样超过 45 分钟才自动取，手动刷新才强制 |
+OpenCode Go is a flat monthly subscription, but its console only shows *used percentages* and a reset time.
+It does not tell you whether your current pace will exhaust the allowance before the renewal date — the one
+question that decides whether you need to top up, renew early, or switch to the pay-as-you-go API for the rest
+of the period.
 
-两次隐式采样之间至少间隔 20 分钟（可配），所有采样落盘在
-`$DSH_HOME/opencode-go-eta/samples.json`（原子写、默认保留 45 天）。
+This plugin keeps a small local history of the official quota readings and answers that question in the
+composer dock. It never reads your session logs: the Go allowance is account-wide, so only the official
+percentage sees usage from every client.
 
-## 预测算法
+## Features
 
-- 只在**当前月窗口周期内**取样本；跨过重置点的样本会被丢弃（避免重置那一跌把斜率算成负的）。
-- 用 **Theil–Sen 稳健斜率**（对偶斜率中位数）而不是最小二乘，抗单次尖峰。
-- 门槛：至少 3 个采样点、跨度 ≥ 6 小时，否则显示「样本不足」而不是硬猜。
-- `ETA = (100 − 已用%) / 斜率`，置信度按样本数、跨度与 R² 分档（高 / 中 / 低）。
-- 判定：`ETA < 续费日` → **到期前会用完**（警示）；`ETA ≥ 周期重置` → **本周期不会用完**；否则 **到期前用不完**。
-- 面板里的预测线是**线性外推**，不是官方预测；接口只给百分比，没有金额明细时按百分比算。
+- **Projected exhaustion time** — a reset-aware Theil–Sen fit over the recorded quota samples gives an ETA per window, with a confidence tier. No guessing from a single reading.
+- **Renewal-date comparison** — says plainly whether the monthly allowance will run out *before* the renewal date, or leave headroom until then.
+- **Cost advice** — when the quota will run out early, it compares renewing OpenCode Go against paying the overflow on the official API, using the current model's public price (fetched lazily from [models.dev](https://models.dev) and cached for 12 hours) and the model's documented monthly allowance.
+- **Merged usage & forecast chart** — history, projection, “now”, ETA and renewal markers on one time axis, with a 0–100 % axis.
+- **Native composer dock capsule** — the 14 px / 2 px ring matches the shipped context meter, so both rings read as peers; the card itself is a liquid-glass panel that dims its highlight layers in dark mode.
+- **Per-model allowance** — Go's monthly limit is *per model* (DeepSeek V4.1 Flash: $80 on Go, $160 on Go Plus; Kimi K3: $15). The card shows the model and its allowance, while percentages stay authoritative from the console.
+- **No polling storms** — samples at four local anchors a day, on task ends, on start-up and on demand.
 
-## 额度口径（2026-10 官方文档）
+## Install
 
-OpenCode Go 的「每月额度」是**按模型**给的美元上限（例如 DeepSeek V4.1 Flash：Go $80 / Go Plus $160；
-GLM-5.3-Flash $60；Kimi K3 $15），且每个模型的窗口固定为 5 小时 20%、每周 50%、每月 100%。
-
-而 `/console/api/go/status` 的 `limitMicroCents` 返回的是套餐计量上限（本机实测 $60），百分比也按它计算。
-两者口径不同：控制台给的是计量额度，官方文档给的是模型额度。卡片默认按**模型额度**显示金额
-（`modelAllowancesUsd`，默认 `deepseek-v4.1-flash: 80`），百分比仍以控制台为准；
-Go Plus 用户把配置改成 `160` 即可。
-## 成本建议（提前用尽时）
-
-当预测显示额度会在续费日前用尽，卡片会多出一段成本对比：
-
-- **立即续费 OpenCode Go**：显示套餐价（默认 $10/期，`planPriceUsd` 可配），并说明新一期额度与续费日顺延；
-- **改用官方 API 支付溢出部分**：溢出额度按本期额度面值折算（`limitMicroCents / 1e8`），
-  再按当前模型的官方单价估算 token 量；
-- 给出更省的一项及理由。
-
-官方单价来自 [models.dev](https://models.dev/api.json) 的公开目录，按 `pricingModel`（默认当前模型
-`deepseek-v4.1-flash`）查找，缓存 12 小时（`pricingTtlMs`），点刷新会强制重新拉取；取不到价格时
-只做额度面值对比，不编造单价。注意：额度面值换算假设 Go 的计费口径与官方 list price 同尺度，属于估算。
-
-## 数据来源
-
-| 端点 | 用途 |
-|---|---|
-| `GET {base}/zen/go/v1/usage` | 三档已用百分比 + `resetsAt`（官方公开接口） |
-| `GET {base}/console/api/go/status` | 每档 `usedMicroCents/limitMicroCents`、套餐 `access.startsAt/endsAt`、续费状态（控制台内部接口，字段可能变；失败时降级为只有百分比） |
-
-密钥从 DSH credentials 解析（默认引用 `OPENCODE_GO_API_KEY`），只在宿主进程内使用；
-浏览器只读同源路由 `/api/dsh-opencode-go-eta/status`，拿到的只有百分比、金额、时间和日期。
-
-> 不读取 DSH 会话日志：本插件统计的是**账号级**套餐额度，而你可能在 DSH 之外
-> 也用同一个 OpenCode Go 账号发请求；只用 DSH 本地日志会系统性低估消耗。
-> 官方接口的百分比覆盖所有客户端，因此采样与预测都以它为准。
-
-## 安装（desktop profile）
+Requires DeepSeek Harness 0.2.x (Desktop or Web profile) and Node.js ≥ 22.
 
 ```powershell
-& 'C:\Users\Exception2Rule\AppData\Local\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd' plugin --profile desktop add link:C:\Users\Exception2Rule\Documents\deepseek-harness\default-workspace\plugins\dsh-opencode-go-eta
+# from GitHub
+dsh plugin --profile desktop add github:HugoOu/dsh-opencode-go-eta
+
+# or from a local checkout
+dsh plugin --profile desktop add link:C:\path\to\dsh-opencode-go-eta
 ```
 
-装完**完全退出并重启 DSH Desktop**（宿主插件行只在启动时装配）。
+Restart DSH completely after installing. The capsule appears below the composer; click it for the card.
 
-## 配置
+> The plugin row is a bundle patch: `dsh plugin add` appends `dsh-opencode-go-eta` to
+> `dsh.profile.bundles` automatically, and the bundled `cordis.patch.yml` inserts the host row.
 
-在 profile 的 `cordis.patch.yml` 里覆盖 `opencode-go-eta` 行：
+## Configuration
+
+Add to your profile's `cordis.patch.yml` to override the defaults:
 
 ```yaml
 - id: opencode-go-eta
   name: dsh-opencode-go-eta
   config:
-    apiKeyRef: OPENCODE_GO_API_KEY
-    baseUrl: https://opencode.ai
-    anchors: [3, 9, 15, 21]      # 本地整点，空数组 = 只靠任务结束与手动刷新
-    sampleIntervalMs: 1200000    # 两次隐式采样的最小间隔
-    staleAfterMs: 2700000        # 打开面板时超过这么久才补采
+    apiKeyRef: OPENCODE_GO_API_KEY   # credential reference, not the key itself
+    anchors: [3, 9, 15, 21]          # local hours; [] disables timed sampling
+    sampleIntervalMs: 1200000        # minimum gap between implicit samples
+    staleAfterMs: 2700000            # a read this old triggers a fresh sample
     retentionDays: 45
-    timeoutMs: 15000
-    enabled: true
+    planName: Go                     # shown in the card
+    planPriceUsd: 10                 # price of one period, used by the advice
+    modelLabel: DeepSeek V4.1 Flash
+    modelAllowancesUsd:
+      deepseek-v4.1-flash: 80        # Go table; use 160 for Go Plus
+    pricingModel: deepseek-v4.1-flash
+    pricingUrl: https://models.dev/api.json
+    pricingTtlMs: 43200000
 ```
 
-## 测试
+The API key is resolved through the Harness credentials service (`OPENCODE_GO_API_KEY`);
+it never reaches the browser.
 
-```powershell
-node test\projection.test.mjs   # 纯数学：斜率、重置切分、三态判定
-node test\host.test.mjs         # 宿主：桩 fetch + 路由响应
-node test\client.test.mjs       # 浏览器半：模块注册、渲染、取数
+## How it works
+
+| Stage | Behaviour |
+| --- | --- |
+| Sampling | `GET /zen/go/v1/usage` (percentages + resets) and `GET /console/api/go/status` (meters, period start/end) — at 03/09/15/21 local, on `turn/end`, at start-up, and on demand. |
+| History | Samples are kept for 45 days in `$DSH_HOME/opencode-go-eta/samples.json` (atomic writes). |
+| Projection | Samples from before the last reset are cut; the Theil–Sen slope of the current cycle gives the ETA. Fewer than 3 points or a span under 6 h is reported as *insufficient samples*. |
+| Verdict | ETA is compared with the window reset and the subscription's `endsAt`: *before expiry*, *after expiry*, *safe within the cycle*. |
+| Advice | Overflow = (projected % at renewal − 100 %) × the model's monthly allowance. Renew costs `planPriceUsd`; the API path costs that overflow at the official price. The cheaper option is recommended. |
+
+The console meter is a plan-credit cap (observed $60), while the official Go table lists a per-model
+monthly allowance (DeepSeek V4.1 Flash: $80). Percentages always follow the console; money follows the
+model allowance so the two never contradict each other silently.
+
+## Development
+
+```bash
+node test/projection.test.mjs   # 10 pure-math tests: slope, reset cutting, verdicts
+node test/host.test.mjs         # 2 host tests: stubbed fetch, route payload
+node test/client.test.mjs       # 4 client tests: slot registration, render, fetch
 ```
 
-不需要网络与真实密钥。
+No network or real key is needed. `preview.html` reproduces the shipped styles with mock data
+(`#shot` hides the page chrome; `#shot-dark` renders the dark theme).
 
-## 视觉预览
+## Limitations
 
-`preview.html` 是静态假数据预览（含深/浅色与三种状态），组件 CSS 与真实插件一致。
+- `/console/api/go/status` is an internal console endpoint; if it changes, the card falls back to percentages only.
+- Projections are linear extrapolations from your own sampling history, not vendor forecasts.
+- Cost advice assumes the quota-meter value and the official list price share the same scale; the token estimate is an approximation.
+- The plugin stores no prompts or session data — only quota readings and the pricing cache.
+
+## License
+
+[MIT](LICENSE) © 2026 HugoOu
+
+---
+
+[中文说明](README.zh-CN.md)
