@@ -1,6 +1,6 @@
-{
+﻿{
   "name": "dsh-opencode-go-eta",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "OpenCode Go quota widget for DeepSeek Harness: samples the plan a few times a day, projects when the monthly allowance runs out, and compares that ETA with the renewal date.",
   "keywords": [

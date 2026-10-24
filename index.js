@@ -321,7 +321,14 @@ export function apply(ctx, rawConfig) {
     const latest = samples[samples.length - 1]
     const usage = latest?.usage ?? {}
     const money = latest?.money ?? {}
-    const plan = latest?.plan ?? null
+    let plan = latest?.plan ?? null
+    if (plan === null) {
+      // A single failed status call must not erase the subscription period: fall
+      // back to the most recent sample that still carried one.
+      for (let i = samples.length - 1; i >= 0; i -= 1) {
+        if (samples[i].plan) { plan = samples[i].plan; break }
+      }
+    }
 
     const windows = {}
     for (const key of ['rolling', 'weekly', 'monthly']) {
@@ -333,7 +340,9 @@ export function apply(ctx, rawConfig) {
       }
     }
 
-    const endsAtMs = plan?.endsAt ? Date.parse(plan.endsAt) : null
+    const monthlyResetIso = windows.monthly?.resetsAt ?? null
+    const endsAtIso = plan?.endsAt ?? monthlyResetIso
+    const endsAtMs = endsAtIso ? Date.parse(endsAtIso) : null
     const deductions = {}
     for (const key of ['rolling', 'weekly', 'monthly']) {
       const resetsAtMs = windows[key].resetsAt ? Date.parse(windows[key].resetsAt) : null
@@ -409,10 +418,10 @@ export function apply(ctx, rawConfig) {
       ...monthly,
       generatedAt: new Date(now).toISOString(),
       /** Whole-subscription view used by the headline. */
-      plan: plan
+      plan: plan || monthlyResetIso
         ? {
-            startsAt: plan.startsAt,
-            endsAt: plan.endsAt,
+            startsAt: plan?.startsAt ?? null,
+            endsAt: plan?.endsAt ?? monthlyResetIso,
             cancelAtPeriodEnd: plan.cancelAtPeriodEnd,
             renewalPending: plan.renewalPending,
             daysLeft: Number.isFinite(endsAtMs) ? (endsAtMs - now) / DAY_MS : null,

@@ -496,7 +496,15 @@ window.__ModuleLoader__.load({
           plan,
         }
       }
-      if (verdict === 'before-expiry') {
+      if (verdict === 'before-reset') {
+        return {
+          tone: 'warn',
+          headline: t(`预计 ${dateTime(eta)} 额度用尽`, `Projected to run out at ${dateTime(eta)}`),
+          sub: t('会在本周期重置前用尽（线性外推）', 'Before the window resets (linear projection)'),
+          percent: used,
+          plan,
+        }
+      }      if (verdict === 'before-expiry') {
         const early = endsAt && eta ? (new Date(endsAt).getTime() - new Date(eta).getTime()) / DAY : null
         return {
           tone: 'warn',
@@ -911,7 +919,7 @@ window.__ModuleLoader__.load({
       const used = Number.isFinite(windows.monthly?.percent) ? windows.monthly.percent : null
       const remaining = used === null ? null : Math.max(0, Math.round(100 - used))
       const verdict = projection.verdict ?? 'insufficient'
-      const tone = verdict === 'before-expiry' ? SYS.warn : verdict === 'exhausted' ? SYS.bad : SYS.good
+      const tone = verdict === 'before-expiry' || verdict === 'before-reset' ? SYS.warn : verdict === 'exhausted' ? SYS.bad : SYS.good
       const etaLabel = projection.etaIso
         ? t(`${shortDate(projection.etaIso)} 用尽`, `out ${shortDate(projection.etaIso)}`)
         : verdict === 'after-expiry' || verdict === 'safe-reset' || verdict === 'idle'

@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict'
+﻿import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -72,7 +72,9 @@ test('host half samples both endpoints and answers the status route', async () =
         monthly: { percent: 20 + i, resetsAt },
       },
       money: { monthly: { usedMicroCents: (20 + i) * 1e8, limitMicroCents: 100 * 1e8 } },
-      plan: { startsAt: new Date(now - 20 * DAY).toISOString(), endsAt, cancelAtPeriodEnd: false },
+      // The newest sample deliberately loses its plan payload: the snapshot must
+      // fall back to the last known subscription period instead of forgetting it.
+      plan: i === 39 ? null : { startsAt: new Date(now - 20 * DAY).toISOString(), endsAt, cancelAtPeriodEnd: false },
     })
   }
   await fs.mkdir(path.join(home, 'opencode-go-eta'), { recursive: true })
