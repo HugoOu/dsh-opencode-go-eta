@@ -1,11 +1,15 @@
-# dsh-opencode-go-eta
+﻿<h1 align="center">dsh-opencode-go-eta</h1>
 
-**DeepSeek Harness 里的 OpenCode Go 额度预测插件 —— 告诉你月额度大约什么时候用完，以及会不会早于续费日。**
+<p align="center"><b>DeepSeek Harness 里的 OpenCode Go 额度预测插件 —— 告诉你月额度大约什么时候用完，以及会不会早于续费日。</b></p>
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![DSH](https://img.shields.io/badge/DeepSeek%20Harness-0.2.x-4d6bfe)](https://github.com/deepseek-ai/deepseek-harness)
-[![node](https://img.shields.io/badge/node-%E2%89%A522-3c873a)](package.json)
-[![tests](https://img.shields.io/badge/tests-16%20passing-2ea44f)](test)
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://github.com/deepseek-ai/deepseek-harness"><img src="https://img.shields.io/badge/DeepSeek%20Harness-0.2.x-4d6bfe" alt="DeepSeek Harness 0.2.x"></a>
+  <a href="package.json"><img src="https://img.shields.io/badge/node-%E2%89%A522-3c873a" alt="Node >= 22"></a>
+  <a href="test"><img src="https://img.shields.io/badge/tests-16%20passing-2ea44f" alt="16 tests passing"></a>
+</p>
+
+<p align="center"><a href="README.md">English</a> · <b>简体中文</b></p>
 
 <p align="center">
   <img src="docs/preview-light.png" alt="OpenCode Go ETA 卡片（浅色）" width="880">
@@ -18,6 +22,14 @@
   <img src="docs/preview-dark.png" alt="OpenCode Go ETA 卡片（深色）" width="880">
 </p>
 </details>
+
+<h2 align="center">输入框状态栏</h2>
+
+<p align="center">
+  <img src="docs/preview-dock.png" alt="输入框状态栏：官方上下文圆环与 Go 胶囊" width="620">
+</p>
+
+<p align="center"><sub>官方上下文圆环（54%）与本插件的 Go 胶囊（18%）共用 14px 圆环 / 2px 描边的规格；胶囊是纯文字触发器，点开前不占额外空间。</sub></p>
 
 ## 为什么做这个
 
@@ -110,6 +122,3 @@ node test/client.test.mjs       # 4 项浏览器半：槽位注册、渲染、�
 
 [MIT](LICENSE) © 2026 HugoOu
 
----
-
-[English](README.md)

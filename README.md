@@ -1,11 +1,15 @@
-# dsh-opencode-go-eta
+﻿<h1 align="center">dsh-opencode-go-eta</h1>
 
-**A quota forecast widget for OpenCode Go inside DeepSeek Harness — it tells you *when* the monthly allowance runs out, and whether that happens before the renewal date.**
+<p align="center"><b>A quota forecast widget for OpenCode Go inside DeepSeek Harness — it tells you <i>when</i> the monthly allowance runs out, and whether that happens before the renewal date.</b></p>
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![DSH](https://img.shields.io/badge/DeepSeek%20Harness-0.2.x-4d6bfe)](https://github.com/deepseek-ai/deepseek-harness)
-[![node](https://img.shields.io/badge/node-%E2%89%A522-3c873a)](package.json)
-[![tests](https://img.shields.io/badge/tests-16%20passing-2ea44f)](test)
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://github.com/deepseek-ai/deepseek-harness"><img src="https://img.shields.io/badge/DeepSeek%20Harness-0.2.x-4d6bfe" alt="DeepSeek Harness 0.2.x"></a>
+  <a href="package.json"><img src="https://img.shields.io/badge/node-%E2%89%A522-3c873a" alt="Node >= 22"></a>
+  <a href="test"><img src="https://img.shields.io/badge/tests-16%20passing-2ea44f" alt="16 tests passing"></a>
+</p>
+
+<p align="center"><b>English</b> · <a href="README.zh-CN.md">简体中文</a></p>
 
 <p align="center">
   <img src="docs/preview-light.png" alt="OpenCode Go ETA card, light theme" width="880">
@@ -18,6 +22,14 @@
   <img src="docs/preview-dark.png" alt="OpenCode Go ETA card, dark theme" width="880">
 </p>
 </details>
+
+<h2 align="center">Composer dock</h2>
+
+<p align="center">
+  <img src="docs/preview-dock.png" alt="Composer dock with the stock context ring and the Go capsule" width="620">
+</p>
+
+<p align="center"><sub>The shipped context ring (54%) and the Go capsule (18%) share the same 14 px / 2 px specification; the capsule stays a text-only trigger, expanding nothing until clicked.</sub></p>
 
 ## Why
 
@@ -119,6 +131,3 @@ No network or real key is needed. `preview.html` reproduces the shipped styles w
 
 [MIT](LICENSE) © 2026 HugoOu
 
----
-
-[中文说明](README.zh-CN.md)

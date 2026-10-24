@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>OpenCode Go ETA · composer dock</title>
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0; background: #f5f5f7; }
+  .row {
+    box-sizing: border-box; width: 760px; padding: 18px 22px;
+    display: flex; align-items: center; gap: 18px;
+    color: #86868b; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 13px; font-variant-numeric: tabular-nums;
+  }
+  .sep { width: 1px; height: 18px; background: rgba(0,0,0,.08); }
+  .trigger { display: inline-flex; align-items: center; gap: 6px; padding: 1px 8px; border-radius: 6px;
+    color: #86868b; font: inherit; line-height: 20px; white-space: nowrap; }
+  .trigger:hover { background: rgba(0,0,0,.06); }
+  .trigger .value { color: #1d1d1f; font-weight: 500; }
+  .ring { display: block; flex: none; }
+  .caption { margin: 0 22px 16px; font: 11.5px -apple-system, "Segoe UI", sans-serif; color: #a1a1a6; }
+</style>
+</head>
+<body>
+<div class="row">
+  <span>7 轮 201 步 · 144 tok/s</span>
+  <span class="sep"></span>
+  <span>68.7M tok · 缓存命中 99%</span>
+  <span class="sep"></span>
+  <span class="trigger" title="DSH 官方上下文占用">
+    <svg class="ring" viewBox="0 0 14 14" width="14" height="14"><circle cx="7" cy="7" r="5.5" fill="none" stroke="rgba(0,0,0,.16)" stroke-width="2"/><circle cx="7" cy="7" r="5.5" fill="none" stroke="#86868b" stroke-width="2" stroke-linecap="round" stroke-dasharray="34.56 34.56" stroke-dashoffset="15.9" transform="rotate(-90 7 7)"/></svg>
+    54%
+  </span>
+  <span class="trigger" title="OpenCode Go 月额度（本插件）">
+    <svg class="ring" viewBox="0 0 14 14" width="14" height="14"><circle cx="7" cy="7" r="5.5" fill="none" stroke="rgba(0,0,0,.16)" stroke-width="2"/><circle cx="7" cy="7" r="5.5" fill="none" stroke="#6b86e8" stroke-width="2" stroke-linecap="round" stroke-dasharray="34.56 34.56" stroke-dashoffset="28.3" transform="rotate(-90 7 7)"/></svg>
+    Go <span class="value">18%</span>
+  </span>
+</div>
+</body>
+</html>
