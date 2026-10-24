@@ -1,0 +1,10 @@
+- insert:
+    - id: opencode-go-eta
+      name: dsh-opencode-go-eta
+      config:
+        # Local hours at which one sample is taken (no polling in between).
+        anchors: [3, 9, 15, 21]
+        # Gap between implicit samples triggered by a finished task or a stale read.
+        sampleIntervalMs: 1200000
+        # Read this long after the last sample and the widget takes a fresh one.
+        staleAfterMs: 2700000

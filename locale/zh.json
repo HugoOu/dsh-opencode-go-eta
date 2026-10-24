@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "OpenCode Go 额度预测",
+    "description": "每天采样几次 OpenCode Go 套餐，推算月额度何时用完，并对比是在续费日之前还是之后。"
+  }
+}

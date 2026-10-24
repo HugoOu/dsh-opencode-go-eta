@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "OpenCode Go ETA",
+    "description": "Samples the Go plan a few times a day and predicts when the monthly allowance will run out — and whether that happens before the renewal date."
+  }
+}
