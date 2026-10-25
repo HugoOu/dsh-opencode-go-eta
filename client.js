@@ -18,9 +18,18 @@ window.__ModuleLoader__.load({
     const YIELD_MS = 5 * 60 * 1000
     const DAY = 86_400_000
 
-    const lang = (document.documentElement.getAttribute('lang') || navigator.language || 'zh').toLowerCase()
-    const ZH = lang.startsWith('zh')
-    const t = (zh, en) => (ZH ? zh : en)
+    // Follow the Harness locale (Settings → General). The document tag is only
+    // the fallback for a page that has no locale service yet.
+    let activeLocale = (document.documentElement.getAttribute('lang') || navigator.language || 'zh').toLowerCase()
+    const isZh = () => activeLocale === 'zh' || activeLocale.startsWith('zh-') || activeLocale.startsWith('zh_')
+    const t = (zh, en) => (isZh() ? zh : en)
+    function applyLocale(value) {
+      if (typeof value !== 'string' || value.length === 0) return
+      const next = value.toLowerCase()
+      if (next === activeLocale) return
+      activeLocale = next
+      publish({})
+    }
 
     // Restrained palette: ink + harp strings. One indigo accent carries the
     // data; state colours appear only as 6–8px dots, never as large fills.
@@ -124,7 +133,7 @@ window.__ModuleLoader__.load({
       const date = new Date(iso)
       if (Number.isNaN(date.getTime())) return '—'
       const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
-      const day = ZH ? `${date.getMonth() + 1}月${date.getDate()}日` : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const day = isZh() ? `${date.getMonth() + 1}月${date.getDate()}日` : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       return `${day} ${time}`
     }
     function money(microCents) {
@@ -1011,6 +1020,22 @@ window.__ModuleLoader__.load({
         ctx.slots.inject(SLOT_PANEL, () =>
           ctx.slots.register({ name: SLOT_PANEL, id: 'opencode-go-eta-panel', order: 20, label: 'OpenCode Go ETA' }, Overlay),
         )
+
+        // Locale: read the active language once and follow locale/change so the
+        // widget matches Settings → General without a reload.
+        const locale = ctx.get('locale')
+        if (locale !== undefined && typeof locale.getLocale === 'function') {
+          try {
+            const current = locale.getLocale()
+            applyLocale(current && (current.active ?? current.locale ?? current.id))
+          } catch {
+            /* keep the document language */
+          }
+          ctx.effect(
+            () => ctx.on('locale/change', (next) => applyLocale(next && (next.active ?? next.locale ?? next.id))),
+            'opencode-go-eta: locale',
+          )
+        }
 
         const theme = ctx.get('theme')
         if (theme !== undefined && typeof theme.getTheme === 'function') {

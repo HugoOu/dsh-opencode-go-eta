@@ -390,10 +390,24 @@ export function apply(ctx, rawConfig) {
       const overflowPercent = Math.max(0, monthly.projectedAtExpiry - 100)
       const overflowUsd = (overflowPercent / 100) * allowanceUsd
       const planPriceUsd = Number.isFinite(config.planPriceUsd) ? config.planPriceUsd : 10
-      // Expected list-value usage per 30 days, from the same slope that drives
-      // the ETA. Clamp so a two-sample spike cannot fabricate a huge bill.
-      const usagePerMonthUsd = Number.isFinite(monthly.ratePerHour)
-        ? Math.min(allowanceUsd * 6, Math.max(0, (monthly.ratePerHour / 100) * allowanceUsd * 24 * 30))
+      // Expected list-value usage per 30 days. A short slowdown can make the
+      // recent slope far below the real pace, so use the larger of (a) the
+      // current period's average pace and (b) the recent slope. Clamp so a
+      // two-sample spike cannot fabricate a huge bill.
+      const percentNow = windows.monthly?.percent
+      const periodStartMs = plan?.startsAt
+        ? Date.parse(plan.startsAt)
+        : monthlyResetIso ? Date.parse(monthlyResetIso) - 30 * DAY_MS : null
+      const daysElapsed = Number.isFinite(periodStartMs) ? (now - periodStartMs) / DAY_MS : null
+      const usageFromPeriod = Number.isFinite(daysElapsed) && daysElapsed > 0.5 && Number.isFinite(percentNow) && percentNow > 0
+        ? (percentNow / 100) * allowanceUsd * (30 / daysElapsed)
+        : null
+      const usageFromSlope = Number.isFinite(monthly.ratePerHour)
+        ? (monthly.ratePerHour / 100) * allowanceUsd * 24 * 30
+        : null
+      const usageCandidates = [usageFromPeriod, usageFromSlope].filter((value) => Number.isFinite(value) && value > 0)
+      const usagePerMonthUsd = usageCandidates.length > 0
+        ? Math.min(allowanceUsd * 6, Math.max(...usageCandidates))
         : null
       const goUnitCost = planPriceUsd / allowanceUsd
       const apiUnitCost = 1
