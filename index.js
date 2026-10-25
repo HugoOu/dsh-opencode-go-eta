@@ -397,16 +397,19 @@ export function apply(ctx, rawConfig) {
         : null
       const goUnitCost = planPriceUsd / allowanceUsd
       const apiUnitCost = 1
-      // Renewing early is a prepayment of the next period, not an extra
-      // purchase: the steady-state plan cost stays planPrice. Paying the
-      // overflow on the API is an *additional* charge on top of that plan.
-      const renewMonthlyUsd = planPriceUsd
+      // Buying a period as soon as it is consumed means the steady-state cost
+      // scales with usage: at $96/month of list-value usage the user buys
+      // $96/$80 = 1.2 periods per month, i.e. 14.4 periods a year, not 12.
+      const renewMonthlyUsd = usagePerMonthUsd === null
+        ? null
+        : Math.max(planPriceUsd, usagePerMonthUsd * goUnitCost)
       const apiMonthlyUsd = usagePerMonthUsd === null
         ? null
         : planPriceUsd + Math.max(0, usagePerMonthUsd - allowanceUsd)
-      // Only skip the renewal when the new allowance would largely expire
-      // unused, i.e. expected usage is below one period's price.
-      const recommendation = usagePerMonthUsd !== null && usagePerMonthUsd < planPriceUsd ? 'api' : 'renew'
+      const renewalsPerYear = usagePerMonthUsd === null
+        ? null
+        : usagePerMonthUsd > allowanceUsd ? (12 * usagePerMonthUsd) / allowanceUsd : 12
+      const recommendation = renewMonthlyUsd !== null && apiMonthlyUsd !== null && apiMonthlyUsd < renewMonthlyUsd ? 'api' : 'renew'
       const price = pricing
       const hasValidPrice = price && Number.isFinite(price.input) && price.input > 0 && Number.isFinite(price.output) && price.output > 0
       advice = {
@@ -421,6 +424,8 @@ export function apply(ctx, rawConfig) {
         renewMonthlyUsd,
         apiMonthlyUsd,
         savingsMonthlyUsd: renewMonthlyUsd !== null && apiMonthlyUsd !== null ? Math.abs(apiMonthlyUsd - renewMonthlyUsd) : null,
+        renewalsPerYear,
+        savingsAnnualUsd: renewMonthlyUsd !== null && apiMonthlyUsd !== null ? Math.abs(apiMonthlyUsd - renewMonthlyUsd) * 12 : null,
         recommendation,
         pricing: hasValidPrice
           ? {

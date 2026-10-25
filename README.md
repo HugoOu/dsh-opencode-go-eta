@@ -103,7 +103,7 @@ it never reaches the browser.
 | History | Samples are kept for 45 days in `$DSH_HOME/opencode-go-eta/samples.json` (atomic writes). |
 | Projection | Samples from before the last reset are cut; the Theil–Sen slope of the current cycle gives the ETA. Fewer than 3 points or a span under 6 h is reported as *insufficient samples*. |
 | Verdict | ETA is compared with the window reset and the subscription's `endsAt`: *before expiry*, *after expiry*, *safe within the cycle*. |
-| Advice | Two steady-state policies: **renew** prices every $1 of usage at `planPriceUsd ÷ allowance` (≈ $0.125), **API overflow** costs $1 per $1 on top of the plan. The monthly costs are compared; renewal is recommended unless expected usage is below one period's price. Official model prices come from models.dev (12 h cache) for display only. |
+| Advice | Two steady-state policies: **renew** prices every $1 of usage at `planPriceUsd ÷ allowance` (≈ $0.125), **API overflow** costs $1 per $1 on top of the plan. Costs are annualised: at $96/month of usage the allowance lasts about 25 days, so renewal means ~14 periods/year (≈$144) while the API path costs ≈$312/year. Renewal wins whenever usage exceeds one allowance; the API only wins when the new allowance would expire unused. Official model prices come from models.dev (12 h cache) for display only. At $96/month of usage the allowance lasts about 25 days, so renewal means ~14 periods/year (≈$144) while the API path costs ≈$312/year. |
 
 The console meter is a plan-credit cap (observed $60), while the official Go table lists a per-model
 monthly allowance (DeepSeek V4.1 Flash: $80). Percentages always follow the console; money follows the

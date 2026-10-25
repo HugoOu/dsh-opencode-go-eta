@@ -882,8 +882,8 @@ window.__ModuleLoader__.load({
                           Number.isFinite(data.advice.renewMonthlyUsd) ? `≈ $${data.advice.renewMonthlyUsd.toFixed(2)}${t('/月', '/mo')}` : '—'),
                         h('span', { className: 'ogeta-option-note' },
                           t(
-                            `每 $1 额度约 $${data.advice.goUnitCost.toFixed(3)}（$${data.advice.planPriceUsd.toFixed(0)} ÷ $${data.advice.limitUsd.toFixed(0)}）`,
-                            `about $${data.advice.goUnitCost.toFixed(3)} per $1 of allowance ($${data.advice.planPriceUsd.toFixed(0)} ÷ $${data.advice.limitUsd.toFixed(0)})`))),
+                            `约 ${data.advice.renewalsPerYear.toFixed(0)} 次续费/年 · 每 $1 额度 $${data.advice.goUnitCost.toFixed(3)}`,
+                            `about ${data.advice.renewalsPerYear.toFixed(0)} periods a year · $${data.advice.goUnitCost.toFixed(3)} per $1 of allowance`))),
                       h('div', { className: `ogeta-option${data.advice.recommendation === 'api' ? ' is-pick' : ''}` },
                         h('span', { className: 'ogeta-option-name' }, t('溢出部分走官方 API', 'Overflow on the official API')),
                         h('span', { className: 'ogeta-option-cost' },
@@ -896,15 +896,15 @@ window.__ModuleLoader__.load({
                         Number.isFinite(data.advice.usagePerMonthUsd)
                           ? data.advice.recommendation === 'api'
                             ? t(
-                                `按当前速度每月约用 $${data.advice.usagePerMonthUsd.toFixed(0)}；新一期 $${data.advice.limitUsd.toFixed(0)} 额度预计用不完，溢出走 API 约每月省 $${data.advice.savingsMonthlyUsd.toFixed(2)}。`,
-                                `At ~$${data.advice.usagePerMonthUsd.toFixed(0)}/mo the new $${data.advice.limitUsd.toFixed(0)} allowance would go unused; paying the overflow on the API saves about $${data.advice.savingsMonthlyUsd.toFixed(2)}/mo.`)
+                                `按当前速度每年约需 ${data.advice.renewalsPerYear.toFixed(0)} 期（$${(data.advice.renewMonthlyUsd * 12).toFixed(0)}/年）；溢出走 API 约 $${(data.advice.apiMonthlyUsd * 12).toFixed(0)}/年，可省 $${data.advice.savingsAnnualUsd.toFixed(0)}/年。`,
+                                `About ${data.advice.renewalsPerYear.toFixed(0)} periods a year ($${(data.advice.renewMonthlyUsd * 12).toFixed(0)}/yr); the API path is about $${(data.advice.apiMonthlyUsd * 12).toFixed(0)}/yr, saving $${data.advice.savingsAnnualUsd.toFixed(0)}/yr.`)
                             : data.advice.savingsMonthlyUsd > 0.005
                               ? t(
-                                  `按当前速度每月约用 $${data.advice.usagePerMonthUsd.toFixed(0)}；续费把溢出单价从 $1 压到 $${data.advice.goUnitCost.toFixed(3)}，长期约每月省 $${data.advice.savingsMonthlyUsd.toFixed(2)}。`,
-                                  `At ~$${data.advice.usagePerMonthUsd.toFixed(0)}/mo, renewing prices the overflow at $${data.advice.goUnitCost.toFixed(3)}/$1 instead of $1 — about $${data.advice.savingsMonthlyUsd.toFixed(2)}/mo saved.`)
+                                  `按当前速度每年约需 ${data.advice.renewalsPerYear.toFixed(0)} 期（$${(data.advice.renewMonthlyUsd * 12).toFixed(0)}/年）；溢出走 API 约 $${(data.advice.apiMonthlyUsd * 12).toFixed(0)}/年，续费每年省 $${data.advice.savingsAnnualUsd.toFixed(0)}。`,
+                                  `About ${data.advice.renewalsPerYear.toFixed(0)} periods a year ($${(data.advice.renewMonthlyUsd * 12).toFixed(0)}/yr); the API path is about $${(data.advice.apiMonthlyUsd * 12).toFixed(0)}/yr — renewing saves $${data.advice.savingsAnnualUsd.toFixed(0)}/yr.`)
                               : t(
-                                  `按当前速度每月约用 $${data.advice.usagePerMonthUsd.toFixed(0)}；提前续费只是把下期 $${data.advice.planPriceUsd.toFixed(0)} 提前，可避免本期约 $${data.advice.overflowUsd.toFixed(2)} 的 API 溢出。`,
-                                  `At ~$${data.advice.usagePerMonthUsd.toFixed(0)}/mo, renewing only moves the next $${data.advice.planPriceUsd.toFixed(0)} earlier and avoids about $${data.advice.overflowUsd.toFixed(2)} of API overflow this period.`)
+                                  `按当前速度每年约需 ${data.advice.renewalsPerYear.toFixed(0)} 期（$${(data.advice.renewMonthlyUsd * 12).toFixed(0)}/年）；提前续费不增加年度支出，还能避免本期约 $${data.advice.overflowUsd.toFixed(2)} 的 API 溢出。`,
+                                  `About ${data.advice.renewalsPerYear.toFixed(0)} periods a year ($${(data.advice.renewMonthlyUsd * 12).toFixed(0)}/yr); renewing does not raise the yearly cost and avoids about $${data.advice.overflowUsd.toFixed(2)} of API overflow this period.`)
                           : t('样本还不足以估算长期成本。', 'Not enough samples for a long-run estimate.')))
                   : null,
 
