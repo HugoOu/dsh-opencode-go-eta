@@ -120,7 +120,11 @@
   .yaxis { display: flex; flex-direction: column; justify-content: space-between; padding: 2px 0 12px; font-size: 9px; color: var(--ink3); text-align: right; }
   .plot { min-width: 0; }
   .plot svg { width: 100%; height: 96px; display: block; }
-  .chart-labels { display: flex; justify-content: space-between; gap: 6px; font-size: 10px; color: var(--ink3); margin-top: 2px; }
+  .chart-labels { position: relative; height: 28px; margin-top: 2px; font-size: 10px; color: var(--ink3); }
+  .clabel { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+  .clabel--start { left: 0; transform: none; }
+  .clabel--end { left: auto; right: 0; transform: none; }
+  .clabel--eta { top: 13px; }
   /* Composer dock row: the shipped ContextMeter (14px ring, 2px stroke) and our pill. */
   .dock-row { max-width: 1120px; margin: 28px auto 0; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
     color: var(--ink3); font-size: var(--dsh-content-font-size-secondary, 13px); }
@@ -200,7 +204,7 @@ function chart(c) {
     <line x1="${renewX}" y1="${top}" x2="${renewX}" y2="${h - bottom}" stroke="var(--ink2)" stroke-opacity=".45"/>
     <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3.2" fill="var(--surface)" stroke="${v('--accent')}" stroke-width="2"/>
   </svg>
-  <div class="chart-labels"><span>10/01</span><span>现在</span>${c.eta ? `<span>预计用尽 10/28</span>` : ''}<span>续费 ${c.renew}</span></div></div></div>`
+  <div class="chart-labels"><span class="clabel clabel--start">10/01</span><span class="clabel" style="left:${(c.now / 112 * 100).toFixed(1)}%">现在</span>${c.eta ? `<span class="clabel clabel--eta" style="left:${(c.eta / 112 * 100).toFixed(1)}%">预计用尽 10/28</span>` : ""}<span class="clabel clabel--end">续费 ${c.renew}</span></div></div></div>`
 }
 
 const MARK = () => `<svg width="21" height="21" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.2" fill="none" stroke="${v('--accent')}" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="38 14" transform="rotate(-108 12 12)"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="${v('--accent')}" stroke-opacity=".45" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="15 12" transform="rotate(38 12 12)"/></svg>`
@@ -238,16 +242,16 @@ function panel(c) {
     </div>
     ${c.advice ? `
     <section class="advice">
-      <div class="advice-head"><span>提前用尽时的成本对比</span><span class="advice-price">官方价 $0.28/$1.10 每 M</span></div>
+      <div class="advice-head"><span>长期成本对比（按当前速度）</span><span class="advice-price">官方模型价 $0.30/$1.20 每 M</span></div>
       <div class="option ${c.advice.pick === 'renew' ? 'is-pick' : ''}">
-        <span class="option-name">立即续费 OpenCode Go</span><span class="option-cost">$10.00</span>
+        <span class="option-name">用完立即续费 OpenCode Go</span><span class="option-cost">≈ $10.00/月</span>
         <span class="option-note">新一期额度 ${c.limit}，续费日顺延</span>
       </div>
       <div class="option ${c.advice.pick === 'api' ? 'is-pick' : ''}">
-        <span class="option-name">改用官方 API 支付溢出部分</span><span class="option-cost">$14.50</span>
-        <span class="option-note">溢出约 20.7% 额度 · 约 16.2M tokens（按 V4.1 Flash Go 单价折算）</span>
+        <span class="option-name">溢出部分走官方 API</span><span class="option-cost">≈ $26.00/月</span>
+        <span class="option-note">套餐 $10/月 + 溢出按 $1/$1 计费</span>
       </div>
-      <div class="advice-reco">建议：溢出金额已达到套餐价，立即续费更省。</div>
+      <div class="advice-reco">按当前速度每月约用 $96；续费把溢出单价从 $1 压到 $0.125，长期约每月省 $16.00。</div>
     </section>` : ''}
     <section class="sec">
       <div class="sechead"><span class="sectitle">用量与预测</span><span class="secnote">46 个采样点 · 6.4 天</span></div>

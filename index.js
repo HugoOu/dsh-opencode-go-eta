@@ -368,16 +368,19 @@ export function apply(ctx, rawConfig) {
 
     const monthly = deductions.monthly
 
-    // Renew-vs-official-API advice, only when the quota is projected to run
-    // out before the renewal date. Amounts use the quota's own dollar meter
-    // (usedMicroCents/limitMicroCents) so no token history is required; the
-    // token estimate additionally uses the current model's public price.
+    // Long-run cost advice. Buying another Go period is not a one-off $10 to
+    // cover this period's overflow: it buys $allowance of usage at a unit price
+    // of planPrice / allowance, which is far below the official API's $1/$1.
+    // The myopic "overflow < plan price" comparison therefore recommends the
+    // API too often. Compare two steady-state policies instead:
+    //   renew-on-exhaustion: every $1 of usage costs planPrice/allowance
+    //   overflow-to-API:      the plan covers the first $allowance, the rest
+    //                         costs $1 per $1 on the official API
     const meterLimitUsd = Number.isFinite(windows.monthly.limitMicroCents)
       ? windows.monthly.limitMicroCents / 1e8
       : Number.isFinite(config.quotaValueFallbackUsd) ? config.quotaValueFallbackUsd : 60
     // The console meter is a plan-credit cap; the official Go table lists a
-    // different monthly allowance per model (V4.1 Flash: $80 on Go). Prefer the
-    // model table for displayed money and the cost advice.
+    // different monthly allowance per model (V4.1 Flash: $80 on Go).
     const configuredAllowance = config.modelAllowancesUsd && typeof config.modelAllowancesUsd === 'object'
       ? config.modelAllowancesUsd[String(config.pricingModel).toLowerCase()]
       : undefined
@@ -387,23 +390,39 @@ export function apply(ctx, rawConfig) {
       const overflowPercent = Math.max(0, monthly.projectedAtExpiry - 100)
       const overflowUsd = (overflowPercent / 100) * allowanceUsd
       const planPriceUsd = Number.isFinite(config.planPriceUsd) ? config.planPriceUsd : 10
+      // Expected list-value usage per 30 days, from the same slope that drives
+      // the ETA. Clamp so a two-sample spike cannot fabricate a huge bill.
+      const usagePerMonthUsd = Number.isFinite(monthly.ratePerHour)
+        ? Math.min(allowanceUsd * 6, Math.max(0, (monthly.ratePerHour / 100) * allowanceUsd * 24 * 30))
+        : null
+      const goUnitCost = planPriceUsd / allowanceUsd
+      const apiUnitCost = 1
+      // Renewing early is a prepayment of the next period, not an extra
+      // purchase: the steady-state plan cost stays planPrice. Paying the
+      // overflow on the API is an *additional* charge on top of that plan.
+      const renewMonthlyUsd = planPriceUsd
+      const apiMonthlyUsd = usagePerMonthUsd === null
+        ? null
+        : planPriceUsd + Math.max(0, usagePerMonthUsd - allowanceUsd)
+      // Only skip the renewal when the new allowance would largely expire
+      // unused, i.e. expected usage is below one period's price.
+      const recommendation = usagePerMonthUsd !== null && usagePerMonthUsd < planPriceUsd ? 'api' : 'renew'
       const price = pricing
-      const blendedOfficial = price && Number.isFinite(price.input) && Number.isFinite(price.output)
-        ? (price.input + 3 * price.output) / 4
-        : null
-      const tokensEstimate = blendedOfficial !== null && blendedOfficial > 0
-        ? (overflowUsd / blendedOfficial) * 1e6
-        : null
-      const officialUsd = overflowUsd
+      const hasValidPrice = price && Number.isFinite(price.input) && price.input > 0 && Number.isFinite(price.output) && price.output > 0
       advice = {
+        mode: 'long-run',
         overflowPercent,
         overflowUsd,
         limitUsd: allowanceUsd,
         planPriceUsd,
-        recommendation: officialUsd < planPriceUsd ? 'api' : 'renew',
-        officialUsd,
-        tokensEstimate,
-        pricing: price
+        usagePerMonthUsd,
+        goUnitCost,
+        apiUnitCost,
+        renewMonthlyUsd,
+        apiMonthlyUsd,
+        savingsMonthlyUsd: renewMonthlyUsd !== null && apiMonthlyUsd !== null ? Math.abs(apiMonthlyUsd - renewMonthlyUsd) : null,
+        recommendation,
+        pricing: hasValidPrice
           ? {
               model: price.model,
               input: price.input,

@@ -335,7 +335,11 @@ window.__ModuleLoader__.load({
 .ogeta-plot { min-width: 0; }
 .ogeta-plot svg { width: 100%; height: 96px; display: block; overflow: visible; }
 .ogeta-chart svg { width: 100%; height: 96px; display: block; overflow: visible; }
-.ogeta-chart-labels { display: flex; justify-content: space-between; gap: 6px; font-size: 10px; color: var(--ogeta-faint); margin-top: 2px; }
+.ogeta-chart-labels { position: relative; height: 28px; margin-top: 2px; font-size: 10px; color: var(--ogeta-faint); }
+.ogeta-chart-label { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.ogeta-chart-label--start { left: 0; transform: none; }
+.ogeta-chart-label--end { left: auto; right: 0; transform: none; }
+.ogeta-chart-label--eta { top: 13px; }
 .ogeta-advice { margin-top: 14px; padding: 10px 11px; border-radius: 14px;
   background: color-mix(in srgb, var(--ogeta-text) 4%, transparent); border: 1px solid var(--ogeta-line); }
 .ogeta-advice-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
@@ -730,10 +734,22 @@ window.__ModuleLoader__.load({
         h(
           'div',
           { className: 'ogeta-chart-labels' },
-          h('span', null, shortDate(new Date(start).toISOString())),
-          h('span', null, t('现在', 'now')),
-          eta !== null ? h('span', null, t('预计用尽 ', 'out '), shortDate(new Date(eta).toISOString())) : null,
-          endsAt !== null ? h('span', null, t('续费 ', 'renew '), shortDate(new Date(endsAt).toISOString())) : null,
+          h('span', { key: 'start', className: 'ogeta-chart-label ogeta-chart-label--start' }, shortDate(new Date(start).toISOString())),
+          h('span', {
+            key: 'now',
+            className: 'ogeta-chart-label',
+            style: { left: `${((now - start) / Math.max(1, end - start)) * 100}%` },
+          }, t('现在', 'now')),
+          eta !== null
+            ? h('span', {
+                key: 'eta',
+                className: 'ogeta-chart-label',
+                style: { left: `${((eta - start) / Math.max(1, end - start)) * 100}%` },
+              }, t('预计用尽 ', 'out '), shortDate(new Date(eta).toISOString()))
+            : null,
+          endsAt !== null
+            ? h('span', { key: 'renew', className: 'ogeta-chart-label ogeta-chart-label--end' }, t('续费 ', 'renew '), shortDate(new Date(endsAt).toISOString()))
+            : null,
         ),
         ),
       )
@@ -856,26 +872,40 @@ window.__ModuleLoader__.load({
                 data.advice
                   ? h('section', { className: 'ogeta-advice' },
                       h('div', { className: 'ogeta-advice-head' },
-                        t('提前用尽时的成本对比', 'Cost comparison if it runs out early'),
-                        data.advice.pricing && Number.isFinite(data.advice.pricing.input)
-                          ? h('span', { className: 'ogeta-advice-price' }, `官方价 $${data.advice.pricing.input}/${data.advice.pricing.output} 每 M`)
+                        t('长期成本对比（按当前速度）', 'Long-run cost at the current pace'),
+                        data.advice.pricing && data.advice.pricing.input > 0
+                          ? h('span', { className: 'ogeta-advice-price' }, `官方模型价 $${data.advice.pricing.input}/${data.advice.pricing.output} 每 M`)
                           : null),
                       h('div', { className: `ogeta-option${data.advice.recommendation === 'renew' ? ' is-pick' : ''}` },
-                        h('span', { className: 'ogeta-option-name' }, t('立即续费 OpenCode Go', 'Renew OpenCode Go now')),
-                        h('span', { className: 'ogeta-option-cost' }, `$${data.advice.planPriceUsd.toFixed(2)}`),
-                        h('span', { className: 'ogeta-option-note' },
-                          t(`新一期额度 $${data.advice.limitUsd.toFixed(0)}，续费日顺延`, `new $${data.advice.limitUsd.toFixed(0)} allowance, renewal moves out`))),
-                      h('div', { className: `ogeta-option${data.advice.recommendation === 'api' ? ' is-pick' : ''}` },
-                        h('span', { className: 'ogeta-option-name' }, t('改用官方 API 支付溢出部分', 'Pay the overflow on the official API')),
-                        h('span', { className: 'ogeta-option-cost' }, `$${(data.advice.officialUsd ?? data.advice.overflowUsd).toFixed(2)}`),
+                        h('span', { className: 'ogeta-option-name' }, t('用完立即续费 OpenCode Go', 'Renew as soon as it runs out')),
+                        h('span', { className: 'ogeta-option-cost' },
+                          Number.isFinite(data.advice.renewMonthlyUsd) ? `≈ $${data.advice.renewMonthlyUsd.toFixed(2)}${t('/月', '/mo')}` : '—'),
                         h('span', { className: 'ogeta-option-note' },
                           t(
-                            `溢出约 ${pct(data.advice.overflowPercent)} 额度${Number.isFinite(data.advice.tokensEstimate) ? ` · 约 ${(data.advice.tokensEstimate / 1e6).toFixed(1)}M tokens` : ''}`,
-                            `about ${pct(data.advice.overflowPercent)} overflow${Number.isFinite(data.advice.tokensEstimate) ? ` · ~${(data.advice.tokensEstimate / 1e6).toFixed(1)}M tokens` : ''}`))),
+                            `每 $1 额度约 $${data.advice.goUnitCost.toFixed(3)}（$${data.advice.planPriceUsd.toFixed(0)} ÷ $${data.advice.limitUsd.toFixed(0)}）`,
+                            `about $${data.advice.goUnitCost.toFixed(3)} per $1 of allowance ($${data.advice.planPriceUsd.toFixed(0)} ÷ $${data.advice.limitUsd.toFixed(0)})`))),
+                      h('div', { className: `ogeta-option${data.advice.recommendation === 'api' ? ' is-pick' : ''}` },
+                        h('span', { className: 'ogeta-option-name' }, t('溢出部分走官方 API', 'Overflow on the official API')),
+                        h('span', { className: 'ogeta-option-cost' },
+                          Number.isFinite(data.advice.apiMonthlyUsd) ? `≈ $${data.advice.apiMonthlyUsd.toFixed(2)}${t('/月', '/mo')}` : '—'),
+                        h('span', { className: 'ogeta-option-note' },
+                          t(
+                            `套餐 $${data.advice.planPriceUsd.toFixed(0)}/月 + 溢出按 $1/$1 计费`,
+                            `plan $${data.advice.planPriceUsd.toFixed(0)}/mo + overflow billed at $1 per $1`))),
                       h('div', { className: 'ogeta-advice-reco' },
-                        data.advice.recommendation === 'api'
-                          ? t('建议：溢出金额低于套餐价，用官方 API 补齐更省。', 'Recommendation: the overflow costs less than a new period, so top up on the official API.')
-                          : t('建议：溢出金额已达到套餐价，立即续费更省。', 'Recommendation: the overflow reaches a full period price, so renewing is cheaper.')))
+                        Number.isFinite(data.advice.usagePerMonthUsd)
+                          ? data.advice.recommendation === 'api'
+                            ? t(
+                                `按当前速度每月约用 $${data.advice.usagePerMonthUsd.toFixed(0)}；新一期 $${data.advice.limitUsd.toFixed(0)} 额度预计用不完，溢出走 API 约每月省 $${data.advice.savingsMonthlyUsd.toFixed(2)}。`,
+                                `At ~$${data.advice.usagePerMonthUsd.toFixed(0)}/mo the new $${data.advice.limitUsd.toFixed(0)} allowance would go unused; paying the overflow on the API saves about $${data.advice.savingsMonthlyUsd.toFixed(2)}/mo.`)
+                            : data.advice.savingsMonthlyUsd > 0.005
+                              ? t(
+                                  `按当前速度每月约用 $${data.advice.usagePerMonthUsd.toFixed(0)}；续费把溢出单价从 $1 压到 $${data.advice.goUnitCost.toFixed(3)}，长期约每月省 $${data.advice.savingsMonthlyUsd.toFixed(2)}。`,
+                                  `At ~$${data.advice.usagePerMonthUsd.toFixed(0)}/mo, renewing prices the overflow at $${data.advice.goUnitCost.toFixed(3)}/$1 instead of $1 — about $${data.advice.savingsMonthlyUsd.toFixed(2)}/mo saved.`)
+                              : t(
+                                  `按当前速度每月约用 $${data.advice.usagePerMonthUsd.toFixed(0)}；提前续费只是把下期 $${data.advice.planPriceUsd.toFixed(0)} 提前，可避免本期约 $${data.advice.overflowUsd.toFixed(2)} 的 API 溢出。`,
+                                  `At ~$${data.advice.usagePerMonthUsd.toFixed(0)}/mo, renewing only moves the next $${data.advice.planPriceUsd.toFixed(0)} earlier and avoids about $${data.advice.overflowUsd.toFixed(2)} of API overflow this period.`)
+                          : t('样本还不足以估算长期成本。', 'Not enough samples for a long-run estimate.')))
                   : null,
 
                 h('section', { className: 'ogeta-section' },

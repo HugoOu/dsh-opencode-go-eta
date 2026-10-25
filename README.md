@@ -46,7 +46,7 @@ percentage sees usage from every client.
 
 - **Projected exhaustion time** — a reset-aware Theil–Sen fit over the recorded quota samples gives an ETA per window, with a confidence tier. No guessing from a single reading.
 - **Renewal-date comparison** — says plainly whether the monthly allowance will run out *before* the renewal date, or leave headroom until then.
-- **Cost advice** — when the quota will run out early, it compares renewing OpenCode Go against paying the overflow on the official API, using the current model's public price (fetched lazily from [models.dev](https://models.dev) and cached for 12 hours) and the model's documented monthly allowance.
+- **Long-run cost advice** — when the quota will run out early, it compares two steady-state policies: renewing OpenCode Go (a prepayment of the next period, unit cost `planPrice ÷ allowance` per $1 of usage, about $0.125) versus paying the overflow on the official API ($1 per $1). Renewal is recommended unless the new allowance would largely expire unused.
 - **Merged usage & forecast chart** — history, projection, “now”, ETA and renewal markers on one time axis, with a 0–100 % axis.
 - **Native composer dock capsule** — the 14 px / 2 px ring matches the shipped context meter, so both rings read as peers; the card itself is a liquid-glass panel that dims its highlight layers in dark mode.
 - **Per-model allowance** — Go's monthly limit is *per model* (DeepSeek V4.1 Flash: $80 on Go, $160 on Go Plus; Kimi K3: $15). The card shows the model and its allowance, while percentages stay authoritative from the console.
@@ -103,7 +103,7 @@ it never reaches the browser.
 | History | Samples are kept for 45 days in `$DSH_HOME/opencode-go-eta/samples.json` (atomic writes). |
 | Projection | Samples from before the last reset are cut; the Theil–Sen slope of the current cycle gives the ETA. Fewer than 3 points or a span under 6 h is reported as *insufficient samples*. |
 | Verdict | ETA is compared with the window reset and the subscription's `endsAt`: *before expiry*, *after expiry*, *safe within the cycle*. |
-| Advice | Overflow = (projected % at renewal − 100 %) × the model's monthly allowance. Renew costs `planPriceUsd`; the API path costs that overflow at the official price. The cheaper option is recommended. |
+| Advice | Two steady-state policies: **renew** prices every $1 of usage at `planPriceUsd ÷ allowance` (≈ $0.125), **API overflow** costs $1 per $1 on top of the plan. The monthly costs are compared; renewal is recommended unless expected usage is below one period's price. Official model prices come from models.dev (12 h cache) for display only. |
 
 The console meter is a plan-credit cap (observed $60), while the official Go table lists a per-model
 monthly allowance (DeepSeek V4.1 Flash: $80). Percentages always follow the console; money follows the
